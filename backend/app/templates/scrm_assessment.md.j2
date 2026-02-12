@@ -1,0 +1,81 @@
+# Supply Chain Risk Management (SCRM) Assessment
+## {{ title }}
+
+**Request Number:** {{ request_number }}
+**Prepared By:** {{ requestor_name }}
+**Assessment Date:** {{ fiscal_year }}
+
+---
+
+## 1. Acquisition Overview
+
+| Field | Value |
+|-------|-------|
+| Title | {{ title }} |
+| Category | {{ category | replace('_', ' ') | title }} |
+| Estimated Value | ${{ "{:,.2f}".format(estimated_total) }} |
+| Vendor | {{ vendor_name }} |
+| Product | {{ product_name }} |
+
+## 2. Vendor Assessment
+
+### Primary Vendor: {{ vendor_name }}
+
+| Risk Factor | Assessment | Notes |
+|-------------|------------|-------|
+| Country of Origin | TBD | Verify vendor headquarters location |
+| Foreign Ownership | TBD | Check FOCI status |
+| CMMC Level | TBD | Verify cybersecurity maturity |
+| Past Performance | TBD | Review CPARS/PPIRS records |
+| Financial Stability | TBD | Check Dun & Bradstreet |
+
+## 3. Product/Service Risk Assessment
+
+### Data Classification
+- [ ] Public
+- [ ] CUI (Controlled Unclassified Information)
+- [ ] Classified
+
+### Network Access
+- [ ] No network access required
+- [ ] Internal network access
+- [ ] Internet-facing
+- [ ] Access to sensitive systems
+
+### Risk Level
+
+{% if estimated_total >= 50000 %}
+**HIGH** — Acquisition value exceeds $50,000. Full SCRM assessment required including:
+- Vendor background investigation
+- Foreign ownership, control, or influence (FOCI) check
+- Supply chain threat assessment
+- Software bill of materials (SBOM) review
+{% elif estimated_total >= 25000 %}
+**MEDIUM** — Acquisition value between $25,000-$50,000. Standard SCRM assessment including:
+- Vendor registration verification (SAM.gov)
+- Basic background check
+- Product origin verification
+{% else %}
+**LOW** — Acquisition value under $25,000. Simplified SCRM review:
+- Verify vendor SAM.gov registration
+- Confirm product availability through authorized channels
+{% endif %}
+
+## 4. Mitigation Strategies
+
+1. **Contractual protections:** Include FAR 52.204-25 (Prohibition on contracting with certain telecommunications equipment)
+2. **Monitoring:** Establish ongoing monitoring of vendor risk indicators
+3. **Incident response:** Ensure vendor has adequate incident response procedures
+{% if category == 'software_license' or category == 'cloud_service' %}4. **Software assurance:** Request SBOM and vulnerability disclosure policy{% endif %}
+
+## 5. Recommendation
+
+{% if estimated_total >= 50000 %}
+**Proceed with caution** — Complete all risk assessments before award. SCRM officer review required.
+{% else %}
+**Proceed** — Standard risk mitigations are sufficient for this acquisition value.
+{% endif %}
+
+---
+
+*This SCRM assessment was auto-generated and requires completion of all TBD fields before submission.*

@@ -1,0 +1,78 @@
+# Acquisition Strategy
+## {{ title }}
+
+**Request Number:** {{ request_number }}
+**Prepared By:** {{ requestor_name }}{% if requestor_org %}, {{ requestor_org }}{% endif %}
+
+**Fiscal Year:** {{ fiscal_year }}
+**Estimated Cost:** ${{ "{:,.2f}".format(estimated_total) }}
+
+---
+
+## 1. Background and Requirement
+
+{{ description }}
+
+### Business Justification
+{{ justification }}
+
+## 2. Current State Assessment
+
+{% if existing_contract_number %}
+This acquisition is associated with existing contract {{ existing_contract_number }}{% if existing_vendor %} with {{ existing_vendor }}{% endif %}{% if existing_contract_value %} valued at ${{ "{:,.2f}".format(existing_contract_value) }}{% endif %}.
+{% else %}
+This is a new acquisition with no existing contract in place.
+{% endif %}
+
+## 3. Recommended Approach
+
+### Acquisition Category
+**{{ category | replace('_', ' ') | title }}** — {{ sub_category | replace('_', ' ') | title if sub_category else 'Standard procurement' }}
+
+### Contract Vehicle
+{{ contract_vehicle }}
+
+### Proposed Timeline
+- **Need-By Date:** {{ need_by_date }}
+- **Estimated Award:** 30 days prior to need-by date
+- **Period of Performance:** 12 months (base year)
+
+## 4. Vendor Information
+
+{% if vendor_name != 'TBD' %}
+**Proposed Vendor:** {{ vendor_name }}
+{% if product_name != 'TBD' %}**Product/Service:** {{ product_name }}{% endif %}
+{% if quantity > 1 %}**Quantity:** {{ quantity }}{% endif %}
+{% else %}
+Vendor will be determined through the competitive procurement process.
+{% endif %}
+
+## 5. Cost Estimate
+
+**Total Estimated Cost:** ${{ "{:,.2f}".format(estimated_total) }}
+
+{% if cost_breakdown %}
+| Line Item | Amount |
+|-----------|--------|
+{% for key, value in cost_breakdown.items() %}
+| {{ key | replace('_', ' ') | title }} | {% if value is number %}${{ "{:,.2f}".format(value) }}{% else %}{{ value }}{% endif %} |
+{% endfor %}
+{% endif %}
+
+## 6. Risk Considerations
+
+- Budget availability confirmed through funding source allocation
+- Supply chain risk assessment {% if estimated_total >= 25000 %}required{% else %}recommended{% endif %} for this acquisition value
+- Vendor performance history to be evaluated prior to award
+
+## 7. Approval Requirements
+
+{% if estimated_total >= 25000 %}
+This acquisition exceeds the $25,000 threshold and requires Major Acquisition review (5-step approval).
+{% else %}
+This acquisition falls under the Standard Review threshold (3-step approval).
+{% endif %}
+
+---
+
+*This document was auto-generated and should be reviewed for accuracy before submission.*

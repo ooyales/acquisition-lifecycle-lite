@@ -1,0 +1,57 @@
+# Independent Government Cost Estimate (IGCE)
+## {{ title }}
+
+**Request Number:** {{ request_number }}
+**Prepared By:** {{ requestor_name }}
+**Date:** {{ fiscal_year }}
+
+---
+
+## 1. Purpose
+
+This Independent Government Cost Estimate (IGCE) provides the government's estimate of the cost for: **{{ title }}**.
+
+{{ description }}
+
+## 2. Cost Estimate Summary
+
+| Item | Quantity | Unit Cost | Total |
+|------|----------|-----------|-------|
+{% if cost_breakdown %}
+{% for key, value in cost_breakdown.items() %}
+| {{ key | replace('_', ' ') | title }} | {% if 'quantity' in key.lower() or 'count' in key.lower() or 'licenses' in key.lower() %}{{ value }}{% elif value is number %}1 | ${{ "{:,.2f}".format(value) }} | ${{ "{:,.2f}".format(value) }}{% else %}{{ value }}{% endif %} |
+{% endfor %}
+{% else %}
+| {{ product_name if product_name != 'TBD' else title }} | {{ quantity }} | ${{ "{:,.2f}".format(estimated_total / quantity) }} | ${{ "{:,.2f}".format(estimated_total) }} |
+{% endif %}
+
+**Total Estimated Cost: ${{ "{:,.2f}".format(estimated_total) }}**
+
+## 3. Basis of Estimate
+
+{% if existing_contract_value %}
+### Historical Pricing
+- Previous contract value: ${{ "{:,.2f}".format(existing_contract_value) }}
+- Escalation factor applied: 3% annual increase
+{% endif %}
+
+### Methodology
+- Market research of comparable products/services
+- Vendor published pricing (GSA Schedule, commercial price lists)
+{% if existing_contract_number %}- Historical pricing from contract {{ existing_contract_number }}{% endif %}
+- Industry standard pricing guides
+
+## 4. Assumptions
+
+1. Pricing is based on current market conditions
+2. Quantities are as specified in the requirements document
+3. No significant market disruptions are anticipated
+4. Contract vehicle pricing reflects current negotiated rates
+
+## 5. Confidence Level
+
+**Medium** — Estimate based on available market data and historical pricing. Actual costs may vary ±15% based on competitive responses.
+
+---
+
+*This IGCE was auto-generated and should be validated against current market data before submission.*

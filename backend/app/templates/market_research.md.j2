@@ -1,0 +1,60 @@
+# Market Research Report
+## {{ title }}
+
+**Request Number:** {{ request_number }}
+**Prepared By:** {{ requestor_name }}
+**Category:** {{ category | replace('_', ' ') | title }}
+
+---
+
+## 1. Purpose
+
+This market research report documents the investigation of commercially available solutions for: **{{ title }}**.
+
+{{ justification }}
+
+## 2. Sources Consulted
+
+- GSA Advantage (gsaadvantage.gov)
+- SAM.gov (System for Award Management)
+- Industry publications and analyst reports
+{% if vendor_name != 'TBD' %}- {{ vendor_name }} product documentation and pricing{% endif %}
+- Peer agency procurement records
+
+## 3. Market Analysis
+
+### Product/Service Category
+**{{ category | replace('_', ' ') | title }}** — {{ sub_category | replace('_', ' ') | title if sub_category else 'General' }}
+
+### Available Solutions
+
+| Vendor | Product | Est. Cost | Contract Vehicle | Notes |
+|--------|---------|-----------|------------------|-------|
+{% if vendor_name != 'TBD' %}
+| {{ vendor_name }} | {{ product_name }} | ${{ "{:,.2f}".format(estimated_total) }} | {{ contract_vehicle }} | Recommended |
+{% endif %}
+| *Additional vendors* | *TBD* | *TBD* | *Various* | *To be evaluated* |
+
+## 4. Competition Assessment
+
+{% if sub_category == 'sole_source' or sub_category == 'renewal' %}
+**Limited competition** — This requirement is for a {% if sub_category == 'renewal' %}renewal of an existing contract{% else %}sole-source procurement{% endif %}. Justification for limited competition is documented in the acquisition strategy.
+{% else %}
+**Full and open competition** recommended. Multiple vendors are available to meet the requirement.
+{% endif %}
+
+## 5. Recommended Approach
+
+{% if contract_vehicle != 'TBD' %}
+Procure through **{{ contract_vehicle }}** to leverage pre-negotiated pricing and streamlined ordering procedures.
+{% else %}
+Recommend competitive solicitation through an appropriate contract vehicle (GSA Schedule, BPA, or open market).
+{% endif %}
+
+## 6. Conclusion
+
+Based on the market research conducted, the estimated cost of ${{ "{:,.2f}".format(estimated_total) }} is reasonable and consistent with current market pricing for comparable {% if category == 'software_license' %}software licenses{% elif category == 'hardware_purchase' %}hardware{% elif category == 'service_contract' %}professional services{% elif category == 'cloud_service' %}cloud services{% else %}products/services{% endif %}.
+
+---
+
+*This market research report was auto-generated and should be supplemented with current market data.*

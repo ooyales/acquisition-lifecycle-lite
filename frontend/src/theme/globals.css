@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+body {
+  font-family: 'Hind', system-ui, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Section Pattern ────────────────────────────────────────────────── */
+.eaw-section {
+  @apply bg-white rounded shadow-eaw mb-4 overflow-hidden;
+}
+
+.eaw-section-header {
+  @apply flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-eaw-border cursor-pointer select-none;
+  @apply text-sm font-semibold text-eaw-font uppercase tracking-wide;
+}
+
+.eaw-section-header:hover {
+  @apply bg-gray-100;
+}
+
+.eaw-section-content {
+  @apply px-4 py-4;
+}
+
+/* ── Page Summary ───────────────────────────────────────────────────── */
+.eaw-page-summary {
+  @apply bg-white rounded shadow-eaw p-4 mb-4 text-sm text-eaw-muted leading-relaxed;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.btn-primary {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded transition-colors;
+  background-color: #337ab7;
+}
+.btn-primary:hover {
+  background-color: #23527c;
+}
+.btn-primary:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-eaw-font bg-white border border-eaw-border rounded transition-colors;
+}
+.btn-secondary:hover {
+  @apply bg-gray-50;
+}
+.btn-secondary:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-danger {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded transition-colors;
+  background-color: #d9534f;
+}
+.btn-danger:hover {
+  background-color: #c9302c;
+}
+
+.btn-success {
+  @apply inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded transition-colors;
+  background-color: #5cb85c;
+}
+.btn-success:hover {
+  background-color: #449d44;
+}
+
+/* ── Input Fields ───────────────────────────────────────────────────── */
+.input-field {
+  @apply w-full px-3 py-2 text-sm border border-eaw-border rounded outline-none transition-colors;
+}
+.input-field:focus {
+  @apply border-eaw-primary ring-1 ring-eaw-primary;
+}
+.input-field::placeholder {
+  @apply text-eaw-muted;
+}
+
+/* ── Select ─────────────────────────────────────────────────────────── */
+.select-field {
+  @apply px-3 py-2 text-sm border border-eaw-border rounded outline-none bg-white transition-colors;
+}
+.select-field:focus {
+  @apply border-eaw-primary ring-1 ring-eaw-primary;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────── */
+.badge-success {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full;
+  background-color: #dff0d8;
+  color: #3c763d;
+}
+
+.badge-warning {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full;
+  background-color: #fcf8e3;
+  color: #8a6d3b;
+}
+
+.badge-danger {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full;
+  background-color: #f2dede;
+  color: #a94442;
+}
+
+.badge-info {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full;
+  background-color: #d9edf7;
+  color: #31708f;
+}
+
+.badge-muted {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-eaw-muted;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────── */
+.eaw-table {
+  @apply w-full text-sm;
+}
+.eaw-table thead th {
+  @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-eaw-muted bg-gray-50 border-b border-eaw-border;
+}
+.eaw-table tbody td {
+  @apply px-4 py-3 border-b border-eaw-border-light;
+}
+.eaw-table tbody tr:hover {
+  @apply bg-gray-50;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────── */
+.eaw-card {
+  @apply bg-white rounded shadow-eaw p-4;
+}
+
+/* ── KPI Card ───────────────────────────────────────────────────────── */
+.kpi-card {
+  @apply bg-white rounded shadow-eaw p-5 flex items-center gap-4;
+}
+.kpi-card .kpi-icon {
+  @apply p-3 rounded-lg;
+}
+.kpi-card .kpi-value {
+  @apply text-2xl font-bold text-eaw-font;
+}
+.kpi-card .kpi-label {
+  @apply text-sm text-eaw-muted;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
