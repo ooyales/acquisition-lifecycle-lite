@@ -117,6 +117,17 @@ export interface AdvisoryInput {
   completed_at: string | null;
 }
 
+export interface Notification {
+  id: number;
+  user_id: number;
+  request_id: number | null;
+  notification_type: string;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  created_at: string | null;
+}
+
 export interface LineOfAccounting {
   id: number;
   fund_code: string;

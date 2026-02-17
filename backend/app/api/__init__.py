@@ -13,6 +13,7 @@ def register_blueprints(app):
     from app.api.ai import ai_bp
     from app.api.dashboard import dashboard_bp
     from app.api.admin import admin_bp
+    from app.api.notifications import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(requests_bp, url_prefix='/api/requests')
@@ -28,3 +29,4 @@ def register_blueprints(app):
     app.register_blueprint(ai_bp, url_prefix='/api/ai')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')

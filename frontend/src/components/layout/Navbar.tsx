@@ -1,5 +1,6 @@
 import { LogOut, Menu, User } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -18,8 +19,9 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         <span className="text-white drop-shadow-sm">Acquisition Dual-Track</span>
       </a>
       <div className="flex-1" />
+      {user && <NotificationBell />}
       {user && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-3">
           <div className="flex items-center gap-2 text-sm text-white">
             <User size={16} />
             <span className="font-medium">{user.display_name}</span>

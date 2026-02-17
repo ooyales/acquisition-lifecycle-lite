@@ -10,6 +10,7 @@ from app.models.advisory_trigger import AdvisoryTriggerRule
 from app.services.derivation import derive_classification
 from app.services.checklist import generate_checklist, recalculate_checklist
 from app.services.workflow import select_template
+from app.services.notifications import notify_users_by_team
 
 intake_bp = Blueprint('intake', __name__)
 
@@ -377,6 +378,13 @@ def _trigger_advisories(request_obj, advisory_triggers_str=None):
             )
             db.session.add(adv)
 
+            # Notify advisory team members
+            notify_users_by_team(
+                team, request_obj.id, 'advisory_requested',
+                f'Advisory review requested: {team.upper()}',
+                f'Request "{request_obj.title}" ({request_obj.request_number}) needs {team.upper()} advisory review.'
+            )
+
             # Update denormalized status on request
             status_field = info.get('status_field')
             if status_field and hasattr(request_obj, status_field):
@@ -403,6 +411,14 @@ def _trigger_advisories(request_obj, advisory_triggers_str=None):
                     blocks_gate=blocks_gate,
                 )
                 db.session.add(adv)
+
+                # Notify advisory team members
+                notify_users_by_team(
+                    team, request_obj.id, 'advisory_requested',
+                    f'Advisory review requested: {team.upper()}',
+                    f'Request "{request_obj.title}" ({request_obj.request_number}) needs {team.upper()} advisory review.'
+                )
+
                 advisories.append(team)
                 triggered_teams.add(team)
     except Exception:

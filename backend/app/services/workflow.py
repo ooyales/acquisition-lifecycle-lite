@@ -14,6 +14,7 @@ from app.extensions import db
 from app.models.approval import ApprovalTemplate, ApprovalTemplateStep, ApprovalStep
 from app.models.request import AcquisitionRequest
 from app.models.activity import ActivityLog
+from app.services.notifications import notify_users_by_role, notify_requestor
 
 
 def select_template(request, template_key=None):
@@ -131,6 +132,17 @@ def submit_request(request_id, template_key=None):
         actor=request.requestor_name or 'System',
     )
     db.session.add(log)
+
+    # Notify the first approver
+    for step in created_steps:
+        if step.status == 'active':
+            notify_users_by_role(
+                step.approver_role, request_id, 'step_activated',
+                f'Action required: {step.step_name}',
+                f'Request "{request.title}" ({request.request_number}) needs your {step.step_name} review.'
+            )
+            break
+
     db.session.commit()
 
     return {
@@ -196,6 +208,13 @@ def process_approval(step_id, action, actor_name, actor_id=None, comments=None):
             next_step.due_date = now + timedelta(days=sla)
             request.status = _step_to_status(next_step.step_name)
             log.new_value = request.status
+
+            # Notify next approver
+            notify_users_by_role(
+                next_step.approver_role, request.id, 'step_activated',
+                f'Action required: {next_step.step_name}',
+                f'Request "{request.title}" ({request.request_number}) is ready for your {next_step.step_name} review.'
+            )
         else:
             # All steps complete — approved!
             request.status = 'approved'
@@ -207,6 +226,13 @@ def process_approval(step_id, action, actor_name, actor_id=None, comments=None):
                 actor='System',
             )
             db.session.add(log_final)
+
+            # Notify requestor of full approval
+            notify_requestor(
+                request.id, 'request_fully_approved',
+                f'Request approved: {request.title}',
+                f'Your request "{request.title}" ({request.request_number}) has been fully approved.'
+            )
 
         db.session.add(log)
 
@@ -227,6 +253,13 @@ def process_approval(step_id, action, actor_name, actor_id=None, comments=None):
         )
         db.session.add(log)
 
+        # Notify requestor of rejection
+        notify_requestor(
+            request.id, 'request_rejected',
+            f'Request rejected: {request.title}',
+            f'Your request "{request.title}" ({request.request_number}) was rejected at {step.step_name}. Reason: {comments or "No reason given"}'
+        )
+
     elif action == 'return':
         step.status = 'returned'
         step.acted_on_date = now
@@ -243,6 +276,13 @@ def process_approval(step_id, action, actor_name, actor_id=None, comments=None):
             new_value='returned',
         )
         db.session.add(log)
+
+        # Notify requestor of return
+        notify_requestor(
+            request.id, 'request_returned',
+            f'Request returned: {request.title}',
+            f'Your request "{request.title}" ({request.request_number}) was returned at {step.step_name} for revisions. Reason: {comments or "No reason given"}'
+        )
 
     else:
         return {'error': f'Unknown action: {action}'}

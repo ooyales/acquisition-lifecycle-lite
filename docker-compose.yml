@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=sqlite:////app/data/acquisition_dual_track.db
       - SECRET_KEY=dev-secret
       - JWT_SECRET_KEY=jwt-dev-secret
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - acqdt-data:/app/data
       - ./acquisition-rules-config.xlsx:/app/acquisition-rules-config.xlsx:ro

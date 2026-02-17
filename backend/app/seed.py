@@ -16,7 +16,7 @@ from app.models import (
     DocumentTemplate, DocumentRule, PackageDocument,
     ApprovalTemplate, ApprovalTemplateStep, ApprovalStep,
     AdvisoryInput, AcquisitionCLIN, DemandForecast,
-    CLINExecutionRequest, ActivityLog,
+    CLINExecutionRequest, ActivityLog, Notification,
     IntakePath, AdvisoryTriggerRule,
 )
 
@@ -61,6 +61,9 @@ def seed():
 
     print('Seeding activity logs...')
     _seed_activity_logs(requests)
+
+    print('Seeding notifications...')
+    _seed_notifications(users, requests)
 
     db.session.commit()
     print('Seed complete.')
@@ -162,6 +165,7 @@ def _seed_users():
         ('ko@acq.local', 'David Martinez', 'demo123', 'ko', 'contracting'),
         ('legal@acq.local', 'Emily Brown', 'demo123', 'legal', 'legal'),
         ('sb@acq.local', 'James Wilson', 'demo123', 'sb', 'small_business'),
+        ('cio@acq.local', 'Patricia Davis', 'demo123', 'cio', 'management'),
     ]
     users = {}
     for email, name, pwd, role, team in users_data:
@@ -1391,5 +1395,154 @@ def _seed_activity_logs(requests):
             created_at=ts,
         )
         db.session.add(log)
+
+    db.session.flush()
+
+
+# ---------------------------------------------------------------------------
+# 16. Notifications (demo)
+# ---------------------------------------------------------------------------
+def _seed_notifications(users, requests):
+    """Seed demo notifications so every role sees items in the bell on first login."""
+    now = datetime.utcnow()
+
+    chief = users.get('branch_chief')
+    ko = users.get('ko')
+    budget = users.get('budget')
+    requestor = users.get('requestor')
+    scrm = users.get('scrm')
+    sb = users.get('sb')
+    cto = users.get('cto')
+    cio = users.get('cio')
+    legal = users.get('legal')
+    admin = users.get('admin')
+
+    r0 = requests.get(0)  # Cloud Migration - asr_review
+    r1 = requests.get(1)  # CrowdStrike - ko_review
+    r2 = requests.get(2)  # Network Switches - iss_review
+    r3 = requests.get(3)  # Help Desk - finance_review
+    r4 = requests.get(4)  # Bridge Extension - approved
+    r8 = requests.get(8)  # Palo Alto - asr_review
+
+    notifs = []
+
+    # branch_chief: ISS review pending for Network Switches
+    if chief and r2:
+        notifs.append((chief.id, r2.id, 'step_activated',
+                        'Action required: ISS Review',
+                        f'Request "{r2.title}" ({r2.request_number}) needs your ISS Review.',
+                        now - timedelta(hours=6)))
+
+    # branch_chief: ASR review for Cloud Migration
+    if chief and r0:
+        notifs.append((chief.id, r0.id, 'step_activated',
+                        'Action required: ASR Review',
+                        f'Request "{r0.title}" ({r0.request_number}) needs your ASR Review.',
+                        now - timedelta(days=2)))
+
+    # ko: KO review for CrowdStrike
+    if ko and r1:
+        notifs.append((ko.id, r1.id, 'step_activated',
+                        'Action required: KO Review',
+                        f'Request "{r1.title}" ({r1.request_number}) needs your KO Review.',
+                        now - timedelta(days=1)))
+
+    # budget: Finance review for Help Desk Option
+    if budget and r3:
+        notifs.append((budget.id, r3.id, 'step_activated',
+                        'Action required: Finance Review',
+                        f'Request "{r3.title}" ({r3.request_number}) needs your Finance Review.',
+                        now - timedelta(hours=12)))
+
+    # scrm: Advisory requested for Network Switches
+    if scrm and r2:
+        notifs.append((scrm.id, r2.id, 'advisory_requested',
+                        'Advisory review requested: SCRM',
+                        f'Request "{r2.title}" ({r2.request_number}) needs SCRM advisory review.',
+                        now - timedelta(days=4)))
+
+    # scrm: Advisory requested for Palo Alto
+    if scrm and r8:
+        notifs.append((scrm.id, r8.id, 'advisory_requested',
+                        'Advisory review requested: SCRM',
+                        f'Request "{r8.title}" ({r8.request_number}) needs SCRM advisory review.',
+                        now - timedelta(days=10)))
+
+    # sb: Advisory requested for Network Switches
+    if sb and r2:
+        notifs.append((sb.id, r2.id, 'advisory_requested',
+                        'Advisory review requested: SBO',
+                        f'Request "{r2.title}" ({r2.request_number}) needs Small Business advisory review.',
+                        now - timedelta(days=4)))
+
+    # sb: Advisory requested for Palo Alto
+    if sb and r8:
+        notifs.append((sb.id, r8.id, 'advisory_requested',
+                        'Advisory review requested: SBO',
+                        f'Request "{r8.title}" ({r8.request_number}) needs Small Business advisory review.',
+                        now - timedelta(days=10)))
+
+    # cto: Advisory requested for Network Switches (CIO team)
+    if cto and r2:
+        notifs.append((cto.id, r2.id, 'advisory_requested',
+                        'Advisory review requested: CIO',
+                        f'Request "{r2.title}" ({r2.request_number}) needs CIO advisory review.',
+                        now - timedelta(days=4)))
+
+    # cio: Advisory requested for Network Switches
+    if cio and r2:
+        notifs.append((cio.id, r2.id, 'advisory_requested',
+                        'Advisory review requested: CIO',
+                        f'Request "{r2.title}" ({r2.request_number}) needs CIO advisory review.',
+                        now - timedelta(days=4)))
+
+    # requestor: Several completed step notifications
+    if requestor and r4:
+        notifs.append((requestor.id, r4.id, 'request_fully_approved',
+                        f'Request approved: {r4.title}',
+                        f'Your request "{r4.title}" ({r4.request_number}) has been fully approved.',
+                        now - timedelta(days=15)))
+
+    if requestor and r1:
+        notifs.append((requestor.id, r1.id, 'advisory_completed',
+                        'SCRM advisory completed',
+                        'The SCRM advisory review for CrowdStrike Falcon EDR is complete. Status: Complete No Issues.',
+                        now - timedelta(days=8)))
+        notifs.append((requestor.id, r1.id, 'advisory_completed',
+                        'SBO advisory completed',
+                        'The SBO advisory review for CrowdStrike Falcon EDR is complete. Status: Complete Issues Found.',
+                        now - timedelta(days=7)))
+
+    if requestor and r0:
+        notifs.append((requestor.id, r0.id, 'advisory_completed',
+                        'CIO advisory completed',
+                        'The CIO advisory review for Cloud Migration is complete. Status: Complete No Issues.',
+                        now - timedelta(days=10)))
+
+    # legal: notification (will have items when pipeline reaches legal review)
+    if legal and r1:
+        notifs.append((legal.id, r1.id, 'advisory_requested',
+                        'Advisory review requested: LEGAL',
+                        f'Request "{r1.title}" ({r1.request_number}) may require legal advisory review.',
+                        now - timedelta(days=20)))
+
+    # admin: sees a general notification
+    if admin and r2:
+        notifs.append((admin.id, r2.id, 'step_activated',
+                        'New request in pipeline',
+                        f'Request "{r2.title}" ({r2.request_number}) has been submitted into the Full Pipeline.',
+                        now - timedelta(days=5)))
+
+    for user_id, req_id, ntype, title, msg, ts in notifs:
+        n = Notification(
+            user_id=user_id,
+            request_id=req_id,
+            notification_type=ntype,
+            title=title,
+            message=msg,
+            is_read=False,
+            created_at=ts,
+        )
+        db.session.add(n)
 
     db.session.flush()

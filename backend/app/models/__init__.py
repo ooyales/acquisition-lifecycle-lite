@@ -11,6 +11,7 @@ from app.models.clin import AcquisitionCLIN
 from app.models.forecast import DemandForecast
 from app.models.execution import CLINExecutionRequest
 from app.models.activity import ActivityLog
+from app.models.notification import Notification
 from app.models.intake_path import IntakePath
 from app.models.advisory_trigger import AdvisoryTriggerRule
 
@@ -20,6 +21,6 @@ __all__ = [
     'DocumentTemplate', 'DocumentRule', 'PackageDocument',
     'ApprovalTemplate', 'ApprovalTemplateStep', 'ApprovalStep',
     'AdvisoryInput', 'AcquisitionCLIN', 'DemandForecast',
-    'CLINExecutionRequest', 'ActivityLog',
+    'CLINExecutionRequest', 'ActivityLog', 'Notification',
     'IntakePath', 'AdvisoryTriggerRule',
 ]

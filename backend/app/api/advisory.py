@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models.advisory import AdvisoryInput
 from app.models.request import AcquisitionRequest
 from app.models.activity import ActivityLog
+from app.services.notifications import notify_requestor
 
 advisory_bp = Blueprint('advisory', __name__)
 
@@ -22,6 +23,7 @@ def advisory_queue():
         'scrm': 'scrm',
         'sb': 'sbo',
         'cto': 'cio',
+        'cio': 'cio',
         'legal': 'legal',
         'budget': 'fm',
     }
@@ -118,6 +120,14 @@ def submit_advisory(advisory_id):
         actor=claims.get('name', 'Unknown'),
     )
     db.session.add(log)
+
+    # Notify requestor that advisory is complete
+    notify_requestor(
+        adv.request_id, 'advisory_completed',
+        f'{adv.team.upper()} advisory completed',
+        f'The {adv.team.upper()} advisory review for your request is complete. Status: {adv.status.replace("_", " ").title()}.'
+    )
+
     db.session.commit()
 
     return jsonify(adv.to_dict())
