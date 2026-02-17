@@ -16,7 +16,7 @@ const navItems = [
   { to: '/intake', icon: PlusCircle, label: 'Start Acquisition' },
   { to: '/requests', icon: FileText, label: 'Requests' },
   { to: '/approvals', icon: ClipboardCheck, label: 'Approval Queue', roles: ['admin', 'branch_chief', 'cto', 'ko', 'legal', 'cio', 'budget'] },
-  { to: '/advisory', icon: Shield, label: 'Advisory Queue', roles: ['admin', 'scrm', 'sb', 'cio', 'section508', 'budget'] },
+  { to: '/advisory', icon: Shield, label: 'Advisory Queue', roles: ['admin', 'scrm', 'sb', 'cto', 'cio', 'section508', 'budget', 'legal'] },
   { to: '/loa', icon: DollarSign, label: 'LOA / Funding', roles: ['admin', 'budget', 'ko'] },
   { to: '/forecasts', icon: TrendingUp, label: 'Demand Forecast' },
   { to: '/execution', icon: Truck, label: 'CLIN Execution' },
