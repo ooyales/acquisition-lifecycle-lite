@@ -13,17 +13,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       <button onClick={onToggleSidebar} className="mr-3 p-1 hover:bg-white/10 rounded">
         <Menu size={20} />
       </button>
-      <a href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
+      <a href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight text-white">
         <span className="bg-eaw-primary text-white rounded px-1.5 py-0.5 text-sm font-bold">AD</span>
-        <span>Acquisition Dual-Track</span>
+        <span className="text-white drop-shadow-sm">Acquisition Dual-Track</span>
       </a>
       <div className="flex-1" />
       {user && (
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-300">
+          <div className="flex items-center gap-2 text-sm text-white">
             <User size={16} />
-            <span>{user.display_name}</span>
-            <span className="bg-white/20 rounded px-2 py-0.5 text-xs">{user.role}</span>
+            <span className="font-medium">{user.display_name}</span>
+            <span className="bg-white/25 rounded px-2 py-0.5 text-xs text-gray-100">{user.role}</span>
           </div>
           <button onClick={logout} className="p-1.5 hover:bg-white/10 rounded" title="Logout">
             <LogOut size={16} />

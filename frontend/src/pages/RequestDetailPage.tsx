@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, ClipboardCheck, Shield, Package, ArrowLeft, Send } from 'lucide-react';
+import { FileText, ClipboardCheck, Shield, Package, ArrowLeft, Send, Trash2 } from 'lucide-react';
 import { requestsApi } from '../api/requests';
 import { documentsApi } from '../api/documents';
 import { approvalsApi } from '../api/approvals';
@@ -12,12 +12,14 @@ import ApprovalPipeline from '../components/approvals/ApprovalPipeline';
 import AdvisoryPanel from '../components/advisory/AdvisoryPanel';
 import { ACQUISITION_TYPE_LABELS, TIER_LABELS, PIPELINE_LABELS } from '../types';
 import type { AcquisitionRequest, PackageDocument, ApprovalStep, AdvisoryInput, AcquisitionCLIN } from '../types';
+import { useAuthStore } from '../store/authStore';
 
 type Tab = 'overview' | 'documents' | 'approvals' | 'advisory' | 'clins';
 
 export default function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [request, setRequest] = useState<AcquisitionRequest | null>(null);
   const [documents, setDocuments] = useState<PackageDocument[]>([]);
   const [approvals, setApprovals] = useState<ApprovalStep[]>([]);
@@ -51,6 +53,14 @@ export default function RequestDetailPage() {
     await requestsApi.submit(reqId);
     loadData();
   };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete request "${request?.title}"? This cannot be undone.`)) return;
+    await requestsApi.delete(reqId);
+    navigate('/requests');
+  };
+
+  const canDelete = user?.role === 'admin';
 
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>;
   if (!request) return <div className="text-center py-12 text-gray-500">Request not found</div>;
@@ -91,6 +101,11 @@ export default function RequestDetailPage() {
         <button onClick={() => navigate(`/requests/${reqId}/clins`)} className="btn-secondary flex items-center gap-2">
           <Package size={16} /> Manage CLINs
         </button>
+        {canDelete && (
+          <button onClick={handleDelete} className="btn-danger flex items-center gap-2">
+            <Trash2 size={16} /> Delete
+          </button>
+        )}
       </div>
 
       {/* Tabs */}

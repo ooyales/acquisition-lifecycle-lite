@@ -11,4 +11,6 @@ export const requestsApi = {
     client.put(`/requests/${id}`, data).then(r => r.data),
   submit: (id: number) =>
     client.post(`/requests/${id}/submit`).then(r => r.data),
+  delete: (id: number) =>
+    client.delete(`/requests/${id}`).then(r => r.data),
 };

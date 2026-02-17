@@ -17,6 +17,7 @@ export default {
           warning: '#f0ad4e',
           danger: '#d9534f',
           info: '#5bc0de',
+          dark: '#2c3e50',
           muted: '#777',
           'selected-bg': '#fffde7',
         },

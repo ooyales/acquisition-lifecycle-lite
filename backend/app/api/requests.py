@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.extensions import db
 from app.models.request import AcquisitionRequest
 from app.models.activity import ActivityLog
@@ -183,6 +183,35 @@ def update_request(request_id):
     db.session.commit()
 
     return jsonify(acq.to_dict())
+
+
+@requests_bp.route('/<int:request_id>', methods=['DELETE'])
+@jwt_required()
+def delete_request(request_id):
+    """Delete a request. Admins can delete any; requestors can delete own drafts."""
+    user_id = int(get_jwt_identity())
+    claims = get_jwt()
+    role = claims.get('role', '')
+
+    acq = AcquisitionRequest.query.get_or_404(request_id)
+
+    # Admins can delete any request
+    if role == 'admin':
+        pass
+    # Requestors can delete their own drafts
+    elif acq.requestor_id == user_id and acq.status == 'draft':
+        pass
+    else:
+        return jsonify({'error': 'Only admins can delete requests, or requestors can delete their own drafts'}), 403
+
+    title = acq.title
+    req_num = acq.request_number
+
+    # Cascade deletes handle related records (CLINs, docs, approvals, advisories, activity logs)
+    db.session.delete(acq)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'Request {req_num} "{title}" deleted'})
 
 
 @requests_bp.route('/<int:request_id>/submit', methods=['POST'])
