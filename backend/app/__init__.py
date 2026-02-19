@@ -35,7 +35,7 @@ def create_app(config_name=None):
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'app': 'acquisition-dual-track-lite'
+            'app': 'acquisition-lifecycle-lite'
         })
 
     try:
@@ -45,7 +45,7 @@ def create_app(config_name=None):
         if db_uri.startswith('sqlite:///'):
             template_db = os.path.join(app.instance_path, db_uri.replace('sqlite:///', ''))
         else:
-            template_db = os.path.join(app.instance_path, 'acquisition_dual_track.db')
+            template_db = os.path.join(app.instance_path, 'acquisition_lifecycle.db')
         _session_mgr = SessionManager(
             template_db=template_db,
             sessions_dir=os.path.join(os.path.dirname(app.instance_path), 'data', 'sessions')

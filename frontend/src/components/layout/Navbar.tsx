@@ -15,8 +15,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         <Menu size={20} />
       </button>
       <a href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight text-white">
-        <span className="bg-eaw-primary text-white rounded px-1.5 py-0.5 text-sm font-bold">AD</span>
-        <span className="text-white drop-shadow-sm">Acquisition Dual-Track</span>
+        <span className="bg-eaw-primary text-white rounded px-1.5 py-0.5 text-sm font-bold">AL</span>
+        <span className="text-white drop-shadow-sm">Acquisition Lifecycle</span>
       </a>
       <div className="flex-1" />
       {user && <NotificationBell />}

@@ -3,7 +3,7 @@ import axios from 'axios';
 const client = axios.create({ baseURL: '/api' });
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('acqdt_token');
+  const token = localStorage.getItem('acql_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -14,8 +14,8 @@ client.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('acqdt_token');
-      localStorage.removeItem('acqdt_user');
+      localStorage.removeItem('acql_token');
+      localStorage.removeItem('acql_user');
       window.location.href = '/login';
     }
     return Promise.reject(err);

@@ -1,7 +1,7 @@
 from flask import jsonify
 
 
-class ACQDTError(Exception):
+class ACQLError(Exception):
     status_code = 500
     message = 'Internal server error'
 
@@ -15,28 +15,28 @@ class ACQDTError(Exception):
         return {'error': self.message, 'status_code': self.status_code}
 
 
-class NotFoundError(ACQDTError):
+class NotFoundError(ACQLError):
     status_code = 404
     message = 'Resource not found'
 
 
-class BadRequestError(ACQDTError):
+class BadRequestError(ACQLError):
     status_code = 400
     message = 'Bad request'
 
 
-class ForbiddenError(ACQDTError):
+class ForbiddenError(ACQLError):
     status_code = 403
     message = 'Forbidden'
 
 
-class ConflictError(ACQDTError):
+class ConflictError(ACQLError):
     status_code = 409
     message = 'Conflict'
 
 
 def register_error_handlers(app):
-    @app.errorhandler(ACQDTError)
+    @app.errorhandler(ACQLError)
     def handle_app_error(error):
         return jsonify(error.to_dict()), error.status_code
 

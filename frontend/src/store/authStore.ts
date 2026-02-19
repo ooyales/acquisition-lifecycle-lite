@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { User } from '../types';
 
-const TOKEN_KEY = 'acqdt_token';
-const USER_KEY = 'acqdt_user';
+const TOKEN_KEY = 'acql_token';
+const USER_KEY = 'acql_user';
 
 function getStoredToken(): string | null {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }

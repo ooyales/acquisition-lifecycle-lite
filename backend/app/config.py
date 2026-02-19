@@ -16,12 +16,12 @@ class BaseConfig:
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///acquisition_dual_track.db')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///acquisition_lifecycle.db')
 
 
 class TestingConfig(BaseConfig):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('TEST_DATABASE_URL', 'sqlite:///acquisition_dual_track_test.db')
+    SQLALCHEMY_DATABASE_URI = os.getenv('TEST_DATABASE_URL', 'sqlite:///acquisition_lifecycle_test.db')
 
 
 class ProductionConfig(BaseConfig):

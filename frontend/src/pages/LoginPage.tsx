@@ -44,8 +44,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-2">
-            <span className="bg-eaw-primary text-white rounded-lg px-3 py-1.5 text-xl font-bold">AD</span>
-            <h1 className="text-2xl font-bold text-gray-900">Acquisition Dual-Track</h1>
+            <span className="bg-eaw-primary text-white rounded-lg px-3 py-1.5 text-xl font-bold">AL</span>
+            <h1 className="text-2xl font-bold text-gray-900">Acquisition Lifecycle</h1>
           </div>
           <p className="text-gray-500 text-sm">Federal IT Acquisition Lifecycle Management</p>
         </div>
