@@ -17,7 +17,7 @@ from app.models import (
     ApprovalTemplate, ApprovalTemplateStep, ApprovalStep,
     AdvisoryInput, AcquisitionCLIN, DemandForecast,
     CLINExecutionRequest, ActivityLog, Notification,
-    IntakePath, AdvisoryTriggerRule,
+    IntakePath, AdvisoryTriggerRule, AdvisoryPipelineConfig,
 )
 
 
@@ -30,6 +30,9 @@ def seed():
     # document templates/rules, approval templates, intake paths, advisory triggers)
     print('Importing rules from Excel workbook...')
     _import_rules_from_excel()
+
+    print('Seeding advisory pipeline config...')
+    _seed_advisory_pipeline_config()
 
     print('Seeding PSC codes...')
     _seed_psc_codes()
@@ -148,6 +151,66 @@ def _seed_approval_templates_fallback():
             template_id=micro.id, step_number=num, step_name=name,
             approver_role=role, sla_days=sla,
         ))
+    db.session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Advisory Pipeline Config (matrix of pipeline x team)
+# ---------------------------------------------------------------------------
+
+ALL_PIPELINES = [
+    'full', 'abbreviated', 'ko_only', 'ko_abbreviated', 'micro',
+    'clin_execution', 'modification', 'clin_exec_funding', 'depends_on_value',
+]
+
+ALL_ADVISORY_TEAMS = ['scrm', 'sbo', 'cio', 'section508', 'fm']
+
+# Map advisory trigger codes from Excel/IntakePath to DB team keys
+_CODE_TO_TEAM = {
+    'SCRM': 'scrm', 'SBO': 'sbo', 'CIO': 'cio',
+    '508': 'section508', 'FM': 'fm', 'FEDRAMP': 'fedramp',
+}
+
+# Default blocks_gate per team
+_DEFAULT_GATE = {
+    'scrm': 'iss', 'sbo': 'asr', 'cio': 'iss',
+    'section508': 'asr', 'fm': 'finance',
+}
+
+
+def _seed_advisory_pipeline_config():
+    """Create the advisory pipeline config matrix from IntakePath data."""
+    # Derive which teams are enabled per pipeline from IntakePath.advisory_triggers
+    paths = IntakePath.query.all()
+    pipeline_teams = {}  # { pipeline_type: set(team_keys) }
+    for p in paths:
+        pipeline = p.derived_pipeline
+        if not pipeline:
+            continue
+        if pipeline not in pipeline_teams:
+            pipeline_teams[pipeline] = set()
+        triggers = p.advisory_triggers or ''
+        if triggers.strip().lower() in ('', 'none'):
+            continue
+        for code in triggers.split(','):
+            code = code.strip().upper()
+            team = _CODE_TO_TEAM.get(code)
+            if team and team in ALL_ADVISORY_TEAMS:
+                pipeline_teams[pipeline].add(team)
+
+    # Create rows for every pipeline x team combination
+    for pipeline in ALL_PIPELINES:
+        enabled_teams = pipeline_teams.get(pipeline, set())
+        for team in ALL_ADVISORY_TEAMS:
+            config = AdvisoryPipelineConfig(
+                pipeline_type=pipeline,
+                team=team,
+                is_enabled=team in enabled_teams,
+                sla_days=5,
+                blocks_gate=_DEFAULT_GATE.get(team, ''),
+                threshold_min=0,
+            )
+            db.session.add(config)
     db.session.flush()
 
 

@@ -10,6 +10,7 @@ from app.models.document import DocumentTemplate, DocumentRule
 from app.models.user import User
 from app.models.intake_path import IntakePath
 from app.models.advisory_trigger import AdvisoryTriggerRule
+from app.models.advisory_pipeline_config import AdvisoryPipelineConfig
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -300,6 +301,96 @@ def list_advisory_triggers():
     return jsonify({
         'triggers': [t.to_dict() for t in triggers],
         'count': len(triggers),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Advisory Pipeline Config (admin-configurable matrix)
+# ---------------------------------------------------------------------------
+
+PIPELINE_LABELS = {
+    'full': 'Full Pipeline',
+    'abbreviated': 'Abbreviated Pipeline',
+    'ko_only': 'KO-Only Pipeline',
+    'ko_abbreviated': 'KO Abbreviated Pipeline',
+    'micro': 'Micro-Purchase Pipeline',
+    'clin_execution': 'CLIN Execution Pipeline',
+    'modification': 'Modification Pipeline',
+    'clin_exec_funding': 'CLIN Exec + Funding Pipeline',
+    'depends_on_value': 'Value-Dependent Pipeline',
+}
+
+ADVISORY_TEAM_LABELS = {
+    'scrm': 'SCRM',
+    'sbo': 'Small Business',
+    'cio': 'CIO / IT Gov',
+    'section508': 'Section 508',
+    'fm': 'Financial Mgmt',
+}
+
+ADV_GATE_OPTIONS = [
+    {'value': '', 'label': 'None (parallel)'},
+    {'value': 'iss', 'label': 'ISS Review'},
+    {'value': 'asr', 'label': 'ASR Review'},
+    {'value': 'finance', 'label': 'Finance Review'},
+    {'value': 'ko_review', 'label': 'KO Review'},
+]
+
+
+@admin_bp.route('/advisory-config', methods=['GET'])
+@jwt_required()
+def get_advisory_config():
+    """Return the advisory pipeline configuration matrix."""
+    configs = AdvisoryPipelineConfig.query.order_by(
+        AdvisoryPipelineConfig.pipeline_type,
+        AdvisoryPipelineConfig.team,
+    ).all()
+
+    return jsonify({
+        'configs': [c.to_dict() for c in configs],
+        'pipeline_labels': PIPELINE_LABELS,
+        'team_labels': ADVISORY_TEAM_LABELS,
+        'gate_options': ADV_GATE_OPTIONS,
+    })
+
+
+@admin_bp.route('/advisory-config', methods=['PUT'])
+@jwt_required()
+def update_advisory_config():
+    """Bulk update advisory pipeline configuration matrix."""
+    err = _require_admin()
+    if err:
+        return err
+
+    data = request.get_json()
+    if not data or 'configs' not in data:
+        return jsonify({'error': 'No configs data provided'}), 400
+
+    for item in data['configs']:
+        config_id = item.get('id')
+        if not config_id:
+            continue
+        config = AdvisoryPipelineConfig.query.get(config_id)
+        if not config:
+            continue
+        if 'is_enabled' in item:
+            config.is_enabled = item['is_enabled']
+        if 'sla_days' in item:
+            config.sla_days = max(1, min(30, int(item['sla_days'])))
+        if 'blocks_gate' in item:
+            config.blocks_gate = item['blocks_gate'] or ''
+        if 'threshold_min' in item:
+            config.threshold_min = max(0, float(item['threshold_min']))
+
+    db.session.commit()
+
+    configs = AdvisoryPipelineConfig.query.order_by(
+        AdvisoryPipelineConfig.pipeline_type,
+        AdvisoryPipelineConfig.team,
+    ).all()
+    return jsonify({
+        'configs': [c.to_dict() for c in configs],
+        'success': True,
     })
 
 

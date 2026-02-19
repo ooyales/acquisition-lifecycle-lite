@@ -14,6 +14,7 @@ from app.models.activity import ActivityLog
 from app.models.notification import Notification
 from app.models.intake_path import IntakePath
 from app.models.advisory_trigger import AdvisoryTriggerRule
+from app.models.advisory_pipeline_config import AdvisoryPipelineConfig
 
 __all__ = [
     'User', 'ThresholdConfig', 'PSCCode', 'PerDiemRate',
@@ -22,5 +23,5 @@ __all__ = [
     'ApprovalTemplate', 'ApprovalTemplateStep', 'ApprovalStep',
     'AdvisoryInput', 'AcquisitionCLIN', 'DemandForecast',
     'CLINExecutionRequest', 'ActivityLog', 'Notification',
-    'IntakePath', 'AdvisoryTriggerRule',
+    'IntakePath', 'AdvisoryTriggerRule', 'AdvisoryPipelineConfig',
 ]

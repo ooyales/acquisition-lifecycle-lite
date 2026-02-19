@@ -40,3 +40,49 @@ with app.app_context():
                 'ALTER TABLE approval_template_steps ADD COLUMN is_enabled BOOLEAN NOT NULL DEFAULT 1'
             ))
             db.session.commit()
+
+        # Migration: create advisory_pipeline_configs table if missing
+        tables = inspector.get_table_names()
+        if 'advisory_pipeline_configs' not in tables:
+            from app.models.advisory_pipeline_config import AdvisoryPipelineConfig
+            AdvisoryPipelineConfig.__table__.create(db.engine)
+
+            # Seed defaults from IntakePath data
+            from app.models.intake_path import IntakePath
+            _CODE_MAP = {
+                'SCRM': 'scrm', 'SBO': 'sbo', 'CIO': 'cio',
+                '508': 'section508', 'FM': 'fm',
+            }
+            _GATE_MAP = {
+                'scrm': 'iss', 'sbo': 'asr', 'cio': 'iss',
+                'section508': 'asr', 'fm': 'finance',
+            }
+            ALL_PIPES = ['full', 'abbreviated', 'ko_only', 'ko_abbreviated', 'micro',
+                         'clin_execution', 'modification', 'clin_exec_funding', 'depends_on_value']
+            ALL_TEAMS = ['scrm', 'sbo', 'cio', 'section508', 'fm']
+
+            pipeline_teams = {}
+            for p in IntakePath.query.all():
+                pl = p.derived_pipeline
+                if not pl:
+                    continue
+                if pl not in pipeline_teams:
+                    pipeline_teams[pl] = set()
+                triggers = p.advisory_triggers or ''
+                if triggers.strip().lower() in ('', 'none'):
+                    continue
+                for code in triggers.split(','):
+                    team = _CODE_MAP.get(code.strip().upper())
+                    if team and team in ALL_TEAMS:
+                        pipeline_teams[pl].add(team)
+
+            for pipe in ALL_PIPES:
+                enabled = pipeline_teams.get(pipe, set())
+                for team in ALL_TEAMS:
+                    db.session.add(AdvisoryPipelineConfig(
+                        pipeline_type=pipe, team=team,
+                        is_enabled=team in enabled,
+                        sla_days=5, blocks_gate=_GATE_MAP.get(team, ''),
+                        threshold_min=0,
+                    ))
+            db.session.commit()

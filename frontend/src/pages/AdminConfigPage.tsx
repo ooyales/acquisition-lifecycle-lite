@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Settings, Save, Pencil, X, Plus, ChevronUp, ChevronDown, Trash2, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react';
+import { Settings, Save, Pencil, X, Plus, ChevronUp, ChevronDown, Trash2, ToggleLeft, ToggleRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { adminApi } from '../api/admin';
 
-type Tab = 'thresholds' | 'templates' | 'rules' | 'users';
+type Tab = 'thresholds' | 'templates' | 'rules' | 'users' | 'advisory';
 
 interface Threshold {
   id: number;
@@ -49,6 +49,21 @@ interface UserItem {
   is_active: boolean;
 }
 
+interface AdvisoryConfig {
+  id: number;
+  pipeline_type: string;
+  team: string;
+  is_enabled: boolean;
+  sla_days: number;
+  blocks_gate: string;
+  threshold_min: number;
+}
+
+interface GateOption {
+  value: string;
+  label: string;
+}
+
 const ROLE_LABELS: Record<string, string> = {
   branch_chief: 'Branch Chief',
   budget: 'Budget Officer',
@@ -80,6 +95,15 @@ export default function AdminConfigPage() {
   const [saving, setSaving] = useState(false);
   const [showAddGate, setShowAddGate] = useState(false);
 
+  // Advisory config state
+  const [advisoryConfigs, setAdvisoryConfigs] = useState<AdvisoryConfig[]>([]);
+  const [editAdvisoryConfigs, setEditAdvisoryConfigs] = useState<AdvisoryConfig[]>([]);
+  const [editingAdvisory, setEditingAdvisory] = useState(false);
+  const [savingAdvisory, setSavingAdvisory] = useState(false);
+  const [pipelineLabels, setPipelineLabels] = useState<Record<string, string>>({});
+  const [teamLabels, setTeamLabels] = useState<Record<string, string>>({});
+  const [gateOptions, setGateOptions] = useState<GateOption[]>([]);
+
   useEffect(() => {
     setLoading(true);
     if (tab === 'thresholds') {
@@ -97,9 +121,17 @@ export default function AdminConfigPage() {
         setRules(Array.isArray(data) ? data : data.rules || []);
         setLoading(false);
       }).catch(() => setLoading(false));
-    } else {
+    } else if (tab === 'users') {
       adminApi.getUsers().then(data => {
         setUsers(Array.isArray(data) ? data : data.users || []);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    } else if (tab === 'advisory') {
+      adminApi.getAdvisoryConfig().then(data => {
+        setAdvisoryConfigs(data.configs || []);
+        setPipelineLabels(data.pipeline_labels || {});
+        setTeamLabels(data.team_labels || {});
+        setGateOptions(data.gate_options || []);
         setLoading(false);
       }).catch(() => setLoading(false));
     }
@@ -199,9 +231,70 @@ export default function AdminConfigPage() {
     g => !editSteps.some(s => s.gate_name === g.gate_name)
   );
 
+  // --- Advisory config handlers ---
+
+  const startEditAdvisory = () => {
+    setEditingAdvisory(true);
+    setEditAdvisoryConfigs(advisoryConfigs.map(c => ({ ...c })));
+  };
+
+  const cancelEditAdvisory = () => {
+    setEditingAdvisory(false);
+    setEditAdvisoryConfigs([]);
+  };
+
+  const saveAdvisoryConfig = async () => {
+    setSavingAdvisory(true);
+    try {
+      const data = await adminApi.updateAdvisoryConfig(editAdvisoryConfigs);
+      setAdvisoryConfigs(data.configs || []);
+      setEditingAdvisory(false);
+      setEditAdvisoryConfigs([]);
+    } catch {
+      // keep editing
+    } finally {
+      setSavingAdvisory(false);
+    }
+  };
+
+  const updateAdvConfig = (configId: number, field: keyof AdvisoryConfig, value: unknown) => {
+    setEditAdvisoryConfigs(prev =>
+      prev.map(c => c.id === configId ? { ...c, [field]: value } : c)
+    );
+  };
+
+  // Group configs by pipeline type (preserving order)
+  const groupByPipeline = (configs: AdvisoryConfig[]) => {
+    const ordered = [
+      'full', 'abbreviated', 'ko_only', 'ko_abbreviated', 'micro',
+      'clin_execution', 'modification', 'clin_exec_funding', 'depends_on_value',
+    ];
+    const groups: Record<string, AdvisoryConfig[]> = {};
+    for (const pipe of ordered) {
+      const items = configs.filter(c => c.pipeline_type === pipe);
+      if (items.length > 0) groups[pipe] = items;
+    }
+    // Also include any pipelines not in the ordered list
+    for (const c of configs) {
+      if (!groups[c.pipeline_type]) groups[c.pipeline_type] = [];
+      if (!groups[c.pipeline_type].includes(c)) groups[c.pipeline_type].push(c);
+    }
+    return groups;
+  };
+
+  // Team colors for badges
+  const teamColor: Record<string, string> = {
+    scrm: 'bg-purple-100 text-purple-700 border-purple-200',
+    sbo: 'bg-orange-100 text-orange-700 border-orange-200',
+    cio: 'bg-blue-100 text-blue-700 border-blue-200',
+    section508: 'bg-green-100 text-green-700 border-green-200',
+    fm: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  };
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'thresholds', label: 'FAR Thresholds' },
     { key: 'templates', label: 'Approval Templates' },
+    { key: 'advisory', label: 'Advisory Triggers' },
     { key: 'rules', label: 'Document Rules' },
     { key: 'users', label: 'Users' },
   ];
@@ -212,7 +305,7 @@ export default function AdminConfigPage() {
         <Settings size={24} className="text-eaw-primary" />
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Admin Configuration</h1>
-          <p className="text-sm text-gray-500">Manage thresholds, templates, rules, and users</p>
+          <p className="text-sm text-gray-500">Manage thresholds, templates, advisory triggers, rules, and users</p>
         </div>
       </div>
 
@@ -512,6 +605,187 @@ export default function AdminConfigPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {tab === 'advisory' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Configure which advisory teams are triggered for each pipeline type</p>
+                  </div>
+                  {!editingAdvisory ? (
+                    <button
+                      onClick={startEditAdvisory}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <Pencil size={12} /> Edit Triggers
+                    </button>
+                  ) : (
+                    <button
+                      onClick={cancelEditAdvisory}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={14} /> Cancel
+                    </button>
+                  )}
+                </div>
+
+                {editingAdvisory && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-700">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    Changes apply to <strong>new requests only</strong>. Existing advisory reviews are not affected.
+                  </div>
+                )}
+
+                {Object.entries(groupByPipeline(editingAdvisory ? editAdvisoryConfigs : advisoryConfigs)).map(([pipeline, configs]) => (
+                  <div key={pipeline} className={`border rounded-lg overflow-hidden ${editingAdvisory ? 'border-eaw-primary/30' : 'border-gray-200'}`}>
+                    {/* Pipeline header */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-gray-400" />
+                        <h3 className="font-medium text-gray-900">{pipelineLabels[pipeline] || pipeline.replace(/_/g, ' ')}</h3>
+                        <span className="text-xs text-gray-400">
+                          {configs.filter(c => c.is_enabled).length} of {configs.length} teams active
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* View mode */}
+                    {!editingAdvisory && (
+                      <div className="p-4">
+                        <div className="flex flex-wrap gap-2">
+                          {configs.map(c => {
+                            const colorClass = c.is_enabled
+                              ? teamColor[c.team] || 'bg-gray-100 text-gray-700 border-gray-200'
+                              : 'bg-gray-50 text-gray-400 border-gray-100';
+                            return (
+                              <div key={c.id} className={`rounded-md px-3 py-2 text-xs border ${colorClass} ${!c.is_enabled ? 'opacity-50' : ''}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-medium ${!c.is_enabled ? 'line-through' : ''}`}>
+                                    {teamLabels[c.team] || c.team}
+                                  </span>
+                                  {!c.is_enabled && (
+                                    <span className="text-[10px] px-1 py-0.5 rounded bg-gray-200 text-gray-500">OFF</span>
+                                  )}
+                                </div>
+                                {c.is_enabled && (
+                                  <div className="text-[10px] mt-1 opacity-70">
+                                    SLA {c.sla_days}d
+                                    {c.blocks_gate ? ` \u00b7 blocks ${c.blocks_gate.toUpperCase()}` : ' \u00b7 parallel'}
+                                    {c.threshold_min > 0 ? ` \u00b7 >${'$'}${c.threshold_min.toLocaleString()}` : ''}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Edit mode */}
+                    {editingAdvisory && (
+                      <div className="p-4 space-y-2">
+                        {configs.map(c => (
+                          <div
+                            key={c.id}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-md border transition-colors ${
+                              c.is_enabled
+                                ? 'border-gray-200 bg-white'
+                                : 'border-gray-100 bg-gray-50 opacity-60'
+                            }`}
+                          >
+                            {/* Toggle */}
+                            <button
+                              onClick={() => updateAdvConfig(c.id, 'is_enabled', !c.is_enabled)}
+                              className={`transition-colors shrink-0 ${c.is_enabled ? 'text-green-500' : 'text-gray-300'}`}
+                              title={c.is_enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
+                            >
+                              {c.is_enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                            </button>
+
+                            {/* Team badge */}
+                            <span className={`text-xs font-semibold px-2 py-1 rounded border shrink-0 w-28 text-center ${
+                              c.is_enabled
+                                ? teamColor[c.team] || 'bg-gray-100 text-gray-700 border-gray-200'
+                                : 'bg-gray-50 text-gray-400 border-gray-100'
+                            }`}>
+                              {teamLabels[c.team] || c.team}
+                            </span>
+
+                            {/* SLA */}
+                            <div className="flex items-center gap-1">
+                              <label className="text-[10px] text-gray-400">SLA</label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={30}
+                                value={c.sla_days}
+                                onChange={e => updateAdvConfig(c.id, 'sla_days', Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-12 text-center text-xs border border-gray-200 rounded px-1 py-1"
+                                disabled={!c.is_enabled}
+                              />
+                              <span className="text-[10px] text-gray-400">days</span>
+                            </div>
+
+                            {/* Blocks gate */}
+                            <div className="flex items-center gap-1">
+                              <label className="text-[10px] text-gray-400">Blocks</label>
+                              <select
+                                value={c.blocks_gate || ''}
+                                onChange={e => updateAdvConfig(c.id, 'blocks_gate', e.target.value)}
+                                className="text-xs border border-gray-200 rounded px-1.5 py-1"
+                                disabled={!c.is_enabled}
+                              >
+                                {gateOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Threshold */}
+                            <div className="flex items-center gap-1 ml-auto">
+                              <label className="text-[10px] text-gray-400">Min $</label>
+                              <input
+                                type="number"
+                                min={0}
+                                step={1000}
+                                value={c.threshold_min}
+                                onChange={e => updateAdvConfig(c.id, 'threshold_min', Math.max(0, parseFloat(e.target.value) || 0))}
+                                className="w-24 text-right text-xs border border-gray-200 rounded px-1.5 py-1"
+                                disabled={!c.is_enabled}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Save / Cancel */}
+                {editingAdvisory && (
+                  <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={saveAdvisoryConfig}
+                      disabled={savingAdvisory}
+                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-md text-white transition-colors"
+                      style={{ backgroundColor: '#337ab7' }}
+                    >
+                      <Save size={14} />
+                      {savingAdvisory ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      onClick={cancelEditAdvisory}
+                      className="px-4 py-2 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <span className="text-[10px] text-gray-400 ml-auto">
+                      {editAdvisoryConfigs.filter(c => c.is_enabled).length} of {editAdvisoryConfigs.length} triggers enabled
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

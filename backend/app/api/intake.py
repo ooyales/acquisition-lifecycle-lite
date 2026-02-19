@@ -7,6 +7,7 @@ from app.models.advisory import AdvisoryInput
 from app.models.activity import ActivityLog
 from app.models.intake_path import IntakePath
 from app.models.advisory_trigger import AdvisoryTriggerRule
+from app.models.advisory_pipeline_config import AdvisoryPipelineConfig
 from app.services.derivation import derive_classification
 from app.services.checklist import generate_checklist, recalculate_checklist
 from app.services.workflow import select_template
@@ -335,66 +336,109 @@ ADVISORY_CODE_MAP = {
 
 
 def _trigger_advisories(request_obj, advisory_triggers_str=None):
-    """Create advisory input requests based on the matched IntakePath's advisory_triggers.
+    """Create advisory input requests based on the AdvisoryPipelineConfig table.
 
-    If advisory_triggers_str is provided (from the derivation result), parse it
-    and create AdvisoryInput records. Also checks the AdvisoryTriggerRule table
-    for any additional condition-based triggers.
+    Priority:
+    1. AdvisoryPipelineConfig table (admin-configurable matrix) — primary
+    2. Fallback to IntakePath.advisory_triggers string if config table is empty
+    3. Additional condition-based triggers from AdvisoryTriggerRule (FM, SCRM ODC)
 
     Args:
         request_obj: AcquisitionRequest instance
-        advisory_triggers_str: Comma-separated trigger codes (e.g. "SCRM,SBO,CIO,508")
+        advisory_triggers_str: Comma-separated trigger codes (fallback)
 
     Returns:
         list of triggered advisory team names
     """
     advisories = []
     triggered_teams = set()
+    pipeline = request_obj.derived_pipeline
+    estimated_value = float(request_obj.estimated_value or 0)
 
-    # 1. Triggers from the matched IntakePath
-    if advisory_triggers_str and advisory_triggers_str.strip().lower() != 'none':
-        codes = [c.strip() for c in advisory_triggers_str.split(',') if c.strip()]
-        for code in codes:
-            info = ADVISORY_CODE_MAP.get(code.upper())
-            if not info:
-                continue
-            team = info['team']
+    # 1. Try AdvisoryPipelineConfig table first (admin-configurable)
+    configs = []
+    try:
+        configs = AdvisoryPipelineConfig.query.filter_by(
+            pipeline_type=pipeline,
+            is_enabled=True,
+        ).all()
+    except Exception:
+        pass  # Table may not exist yet
+
+    if configs:
+        for config in configs:
+            team = config.team
             if team in triggered_teams:
                 continue
+            # Check threshold
+            if config.threshold_min and estimated_value < config.threshold_min:
+                continue
 
-            # Look up the AdvisoryTriggerRule for SLA and gate info
-            rule = _find_trigger_rule(team)
-            blocks_gate = info['default_gate']
-            is_blocking = False
-            if rule:
-                blocks_gate = _normalize_gate(rule.feeds_into_gate) or info['default_gate']
-                is_blocking = rule.blocks_gate
+            blocks_gate = config.blocks_gate or ADVISORY_CODE_MAP.get(
+                _team_to_code(team), {}
+            ).get('default_gate', '')
 
             adv = AdvisoryInput(
                 request_id=request_obj.id,
                 team=team,
                 status='requested',
-                blocks_gate=blocks_gate if is_blocking else blocks_gate,
+                blocks_gate=blocks_gate,
             )
             db.session.add(adv)
 
-            # Notify advisory team members
             notify_users_by_team(
                 team, request_obj.id, 'advisory_requested',
                 f'Advisory review requested: {team.upper()}',
                 f'Request "{request_obj.title}" ({request_obj.request_number}) needs {team.upper()} advisory review.'
             )
 
-            # Update denormalized status on request
-            status_field = info.get('status_field')
+            status_field = ADVISORY_CODE_MAP.get(
+                _team_to_code(team), {}
+            ).get('status_field')
             if status_field and hasattr(request_obj, status_field):
                 setattr(request_obj, status_field, 'requested')
 
             advisories.append(team)
             triggered_teams.add(team)
+    else:
+        # Fallback: use IntakePath.advisory_triggers string (legacy/no config)
+        if advisory_triggers_str and advisory_triggers_str.strip().lower() != 'none':
+            codes = [c.strip() for c in advisory_triggers_str.split(',') if c.strip()]
+            for code in codes:
+                info = ADVISORY_CODE_MAP.get(code.upper())
+                if not info:
+                    continue
+                team = info['team']
+                if team in triggered_teams:
+                    continue
+
+                rule = _find_trigger_rule(team)
+                blocks_gate = info['default_gate']
+                if rule:
+                    blocks_gate = _normalize_gate(rule.feeds_into_gate) or info['default_gate']
+
+                adv = AdvisoryInput(
+                    request_id=request_obj.id,
+                    team=team,
+                    status='requested',
+                    blocks_gate=blocks_gate,
+                )
+                db.session.add(adv)
+
+                notify_users_by_team(
+                    team, request_obj.id, 'advisory_requested',
+                    f'Advisory review requested: {team.upper()}',
+                    f'Request "{request_obj.title}" ({request_obj.request_number}) needs {team.upper()} advisory review.'
+                )
+
+                status_field = info.get('status_field')
+                if status_field and hasattr(request_obj, status_field):
+                    setattr(request_obj, status_field, 'requested')
+
+                advisories.append(team)
+                triggered_teams.add(team)
 
     # 2. Additional condition-based triggers from AdvisoryTriggerRule table
-    # (e.g., FM trigger fires for all requests above micro)
     try:
         all_rules = AdvisoryTriggerRule.query.all()
         for rule in all_rules:
@@ -412,7 +456,6 @@ def _trigger_advisories(request_obj, advisory_triggers_str=None):
                 )
                 db.session.add(adv)
 
-                # Notify advisory team members
                 notify_users_by_team(
                     team, request_obj.id, 'advisory_requested',
                     f'Advisory review requested: {team.upper()}',
@@ -484,6 +527,12 @@ def _normalize_gate(gate_text):
     if 'cor' in gate_lower:
         return 'ko_review'
     return gate_lower.replace(' ', '_')
+
+
+def _team_to_code(team):
+    """Map team DB key back to advisory code (e.g. 'scrm' -> 'SCRM')."""
+    _reverse = {v['team']: k for k, v in ADVISORY_CODE_MAP.items()}
+    return _reverse.get(team, team.upper())
 
 
 def _evaluate_trigger_condition(rule, request_obj):

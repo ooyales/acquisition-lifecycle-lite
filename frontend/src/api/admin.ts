@@ -12,4 +12,7 @@ export const adminApi = {
   updateTemplateSteps: (templateId: number, steps: unknown[]) =>
     client.put(`/admin/templates/${templateId}/steps`, { steps }).then(r => r.data),
   getGateCatalog: () => client.get('/admin/gate-catalog').then(r => r.data),
+  getAdvisoryConfig: () => client.get('/admin/advisory-config').then(r => r.data),
+  updateAdvisoryConfig: (configs: unknown[]) =>
+    client.put('/admin/advisory-config', { configs }).then(r => r.data),
 };
