@@ -20,7 +20,7 @@ export default function RequestListPage() {
 
   useEffect(() => {
     setLoading(true);
-    const params: Record<string, string | number> = { page, per_page: PER_PAGE };
+    const params: Record<string, string> = { page: String(page), per_page: String(PER_PAGE) };
     if (statusFilter) params.status = statusFilter;
     if (search) params.search = search;
     requestsApi.list(params).then(data => {

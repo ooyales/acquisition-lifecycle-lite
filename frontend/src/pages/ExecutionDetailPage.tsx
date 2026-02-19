@@ -48,8 +48,6 @@ interface ExecDetail {
   funding_action_required?: boolean;
   funding_action_amount?: number;
   funding_request_id?: number;
-  estimated_cost?: number;
-  contract_id?: number;
 }
 
 export default function ExecutionDetailPage() {

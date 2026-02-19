@@ -23,8 +23,8 @@ export default function ExecutionCreatePage() {
   useEffect(() => {
     // Load awarded and approved requests — those have active contracts to execute against
     Promise.all([
-      requestsApi.list({ status: 'awarded', per_page: 100 }),
-      requestsApi.list({ status: 'approved', per_page: 100 }),
+      requestsApi.list({ status: 'awarded', per_page: '100' }),
+      requestsApi.list({ status: 'approved', per_page: '100' }),
     ]).then(([d1, d2]) => {
       const r1 = Array.isArray(d1) ? d1 : d1.requests || [];
       const r2 = Array.isArray(d2) ? d2 : d2.requests || [];
