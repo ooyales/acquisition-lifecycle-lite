@@ -91,9 +91,9 @@ def update_loa(loa_id):
 
     updatable = [
         'display_name', 'appropriation', 'fund_code', 'budget_activity_code',
-        'cost_center', 'object_class', 'program_element', 'fiscal_year',
-        'total_allocation', 'projected_amount', 'committed_amount', 'obligated_amount',
-        'fund_type', 'restrictions', 'expiration_date', 'status', 'notes',
+        'cost_center', 'object_class', 'program_element', 'project', 'task',
+        'fiscal_year', 'total_allocation', 'projected_amount', 'committed_amount',
+        'obligated_amount', 'fund_type', 'restrictions', 'expiration_date', 'status', 'notes',
     ]
 
     for field in updatable:
@@ -106,3 +106,20 @@ def update_loa(loa_id):
 
     db.session.commit()
     return jsonify(loa.to_dict())
+
+
+@loa_bp.route('/<int:loa_id>', methods=['DELETE'])
+@jwt_required()
+def delete_loa(loa_id):
+    """Delete an LOA. Blocked if CLINs are assigned."""
+    loa = LineOfAccounting.query.get_or_404(loa_id)
+
+    clin_count = loa.clins.count()
+    if clin_count > 0:
+        return jsonify({
+            'error': f'Cannot delete LOA with {clin_count} assigned CLIN(s). Remove CLIN assignments first.',
+        }), 400
+
+    db.session.delete(loa)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'LOA deleted'})

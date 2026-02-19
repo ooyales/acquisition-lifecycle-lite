@@ -56,6 +56,9 @@ def create_forecast():
         likely_acquisition_type=data.get('likely_acquisition_type'),
         status=data.get('status', 'forecasted'),
         assigned_to_id=data.get('assigned_to_id'),
+        contract_number=data.get('contract_number'),
+        clin_number=data.get('clin_number'),
+        color_of_money=data.get('color_of_money'),
         notes=data.get('notes'),
     )
     db.session.add(forecast)
@@ -77,7 +80,8 @@ def update_forecast(forecast_id):
         'title', 'source', 'source_contract_id', 'estimated_value',
         'estimated_value_basis', 'need_by_date', 'acquisition_lead_time',
         'submit_by_date', 'fiscal_year', 'suggested_loa_id', 'buy_category',
-        'likely_acquisition_type', 'status', 'assigned_to_id', 'notes',
+        'likely_acquisition_type', 'status', 'assigned_to_id',
+        'contract_number', 'clin_number', 'color_of_money', 'notes',
     ]
 
     for field in updatable:
@@ -137,3 +141,19 @@ def create_request_from_forecast(forecast_id):
         'request': acq.to_dict(),
         'forecast': forecast.to_dict(),
     }), 201
+
+
+@forecasts_bp.route('/<int:forecast_id>', methods=['DELETE'])
+@jwt_required()
+def delete_forecast(forecast_id):
+    """Delete a forecast. Blocked if it has a linked acquisition request."""
+    forecast = DemandForecast.query.get_or_404(forecast_id)
+
+    if forecast.acquisition_request_id:
+        return jsonify({
+            'error': 'Cannot delete forecast that has an associated acquisition request.',
+        }), 400
+
+    db.session.delete(forecast)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Forecast deleted'})

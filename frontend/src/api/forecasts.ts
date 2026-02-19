@@ -9,4 +9,6 @@ export const forecastsApi = {
     client.put(`/forecasts/${id}`, data).then(r => r.data),
   createRequest: (id: number) =>
     client.post(`/forecasts/${id}/create-request`).then(r => r.data),
+  delete: (id: number) =>
+    client.delete(`/forecasts/${id}`).then(r => r.data),
 };

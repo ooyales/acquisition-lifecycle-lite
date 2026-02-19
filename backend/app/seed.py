@@ -357,30 +357,32 @@ def _seed_psc_codes():
 def _seed_loas(users):
     budget_user = users.get('budget')
     loa_data = [
+        # (name, approp, fund, bac, cc, oc, pe, fy, total, proj, comm, oblig, ftype, exp, project, task)
         ('FY26 O&M IT Operations', '21-1234', 'OM-IT', '3600', 'CC-100', '25.3', 'PE-01', '2026',
-         4200000, 620000, 950000, 1800000, 'om', '2026-09-30'),
+         4200000, 620000, 950000, 1800000, 'om', '2026-09-30', 'IT-OPS-2026', 'Help Desk Support'),
         ('FY26 O&M Cybersecurity', '21-1235', 'OM-CY', '3610', 'CC-110', '25.3', 'PE-02', '2026',
-         1800000, 200000, 400000, 800000, 'om', '2026-09-30'),
+         1800000, 200000, 400000, 800000, 'om', '2026-09-30', 'CYBER-2026', 'SOC Operations'),
         ('FY26 RDT&E IT Modernization', '21-5678', 'RD-IT', '3700', 'CC-200', '25.3', 'PE-03', '2026',
-         3500000, 500000, 800000, 1200000, 'rdte', '2027-09-30'),
+         3500000, 500000, 800000, 1200000, 'rdte', '2027-09-30', 'IMOD-2026', 'Cloud Migration'),
         ('FY26 Procurement IT Equipment', '21-9012', 'PR-IT', '3400', 'CC-300', '31.0', 'PE-04', '2026',
-         2000000, 300000, 500000, 700000, 'procurement', '2028-09-30'),
+         2000000, 300000, 500000, 700000, 'procurement', '2028-09-30', 'EQUIP-2026', 'Endpoint Refresh'),
         ('FY26 Working Capital IT Shared Services', '21-3456', 'WC-IT', '4000', 'CC-400', '25.3', 'PE-05', '2026',
-         1500000, 150000, 300000, 600000, 'working_capital', '2026-09-30'),
+         1500000, 150000, 300000, 600000, 'working_capital', '2026-09-30', 'SHARED-2026', 'Data Center Ops'),
         ('FY26 Cyber O&M', '21-1236', 'OM-CYBER', '3611', 'CC-115', '25.3', 'PE-06', '2026',
-         2500000, 350000, 500000, 900000, 'om', '2026-09-30'),
+         2500000, 350000, 500000, 900000, 'om', '2026-09-30', 'CYBER-2026', 'Threat Management'),
         ('FY26 Cyber PDW', '21-1237', 'PDW-CYBER', '3612', 'CC-116', '25.3', 'PE-07', '2026',
-         1200000, 100000, 200000, 350000, 'procurement', '2028-09-30'),
+         1200000, 100000, 200000, 350000, 'procurement', '2028-09-30', 'CYBER-PDW-26', 'Security Tools'),
     ]
     loas = {}
-    for i, (name, approp, fund, bac, cc, oc, pe, fy, total, proj, comm, oblig, ftype, exp) in enumerate(loa_data):
+    for i, (name, approp, fund, bac, cc, oc, pe, fy, total, proj_amt, comm, oblig, ftype, exp, project, task) in enumerate(loa_data):
         loa = LineOfAccounting(
             display_name=name, appropriation=approp, fund_code=fund,
             budget_activity_code=bac, cost_center=cc, object_class=oc,
             program_element=pe, fiscal_year=fy, total_allocation=total,
-            projected_amount=proj, committed_amount=comm, obligated_amount=oblig,
+            projected_amount=proj_amt, committed_amount=comm, obligated_amount=oblig,
             fund_type=ftype, expiration_date=exp, status='active',
             managed_by_id=budget_user.id if budget_user else None,
+            project=project, task=task,
         )
         db.session.add(loa)
         loas[i] = loa
@@ -1122,34 +1124,43 @@ def _seed_forecasts(requests, loas, users):
     requestor = users.get('requestor')
     ko = users.get('ko')
 
+    # Each tuple: (title, source, src_idx, val, basis, need, lead, submit, fy, loa_idx, buy, acq_type, status, assigned, contract_num, clin_num, color)
     forecasts_data = [
         ('Help Desk Contract Expiration — FY27 Recompete', 'contract_expiration', 3, 450000,
          'Based on current option year pricing + 3% escalation', '2027-04-30', 9, '2026-07-31',
-         '2027', 0, 'service', 'recompete', 'forecasted', requestor),
+         '2027', 0, 'service', 'recompete', 'forecasted', requestor,
+         'GS-35F-0119Y', '0001', 'om'),
         ('CrowdStrike EDR — FY27 Renewal', 'contract_expiration', 1, 840000,
          'Current year + 5% price increase', '2027-03-31', 6, '2026-09-30',
-         '2027', 1, 'software_license', 'follow_on_sole_source', 'acknowledged', ko),
+         '2027', 1, 'software_license', 'follow_on_sole_source', 'acknowledged', ko,
+         '47QTCA-22-D-0041', '0003', 'om'),
         ('Network Switch Refresh Phase 2', 'planned_refresh', None, 380000,
          'Remaining 8 locations at avg $47.5K each', '2027-01-15', 6, '2026-07-15',
-         '2027', 3, 'product', 'new_competitive', 'forecasted', None),
+         '2027', 3, 'product', 'new_competitive', 'forecasted', None,
+         None, None, 'procurement'),
         ('Cloud Hosting Recompete', 'contract_expiration', 4, 4200000,
          'Current bridge x2 annual + growth', '2026-09-14', 12, '2025-09-14',
-         '2026', 0, 'service', 'recompete', 'acquisition_created', ko),
+         '2026', 0, 'service', 'recompete', 'acquisition_created', ko,
+         'GS-35F-0220Z', '0001', 'om'),
         ('Vulnerability Scanner License', 'option_year_due', None, 165000,
          'Tenable.io subscription', '2026-11-01', 4, '2026-07-01',
-         '2026', 1, 'software_license', 'option_exercise', 'funded', ko),
+         '2026', 1, 'software_license', 'option_exercise', 'funded', ko,
+         '47QTCA-22-D-0055', '0005', 'om'),
         ('Zero Trust Architecture Design Services', 'manual', None, 950000,
          'Strategic initiative per CIO roadmap', '2027-03-01', 9, '2026-06-01',
-         '2027', 2, 'service', 'new_competitive', 'forecasted', None),
+         '2027', 2, 'service', 'new_competitive', 'forecasted', None,
+         None, None, 'rdte'),
         ('Server Lifecycle Replacement', 'technology_sunset', None, 520000,
          'Dell PowerEdge R760 replacements for datacenter', '2026-09-30', 6, '2026-03-30',
-         '2026', 3, 'product', 'new_competitive', 'acknowledged', requestor),
+         '2026', 3, 'product', 'new_competitive', 'acknowledged', requestor,
+         None, None, 'procurement'),
         ('SIEM Platform Renewal', 'contract_expiration', 9, 700000,
          'Current value + additional log sources', '2026-08-31', 6, '2026-02-28',
-         '2026', 1, 'service', 'recompete', 'forecasted', None),
+         '2026', 1, 'service', 'recompete', 'forecasted', None,
+         'GS-35F-0318A', '0001', 'om'),
     ]
 
-    for title, source, src_idx, val, basis, need, lead, submit, fy, loa_idx, buy, acq_type, status, assigned in forecasts_data:
+    for title, source, src_idx, val, basis, need, lead, submit, fy, loa_idx, buy, acq_type, status, assigned, contract_num, clin_num, color in forecasts_data:
         src_req = requests.get(src_idx) if src_idx is not None else None
         loa = loas.get(loa_idx)
         f = DemandForecast(
@@ -1167,6 +1178,9 @@ def _seed_forecasts(requests, loas, users):
             likely_acquisition_type=acq_type,
             status=status,
             assigned_to_id=assigned.id if assigned else None,
+            contract_number=contract_num,
+            clin_number=clin_num,
+            color_of_money=color,
         )
         db.session.add(f)
 

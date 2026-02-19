@@ -24,6 +24,9 @@ class DemandForecast(db.Model):
     acquisition_request_id = db.Column(db.Integer, db.ForeignKey('acquisition_requests.id'))
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    contract_number = db.Column(db.String(50))
+    clin_number = db.Column(db.String(50))
+    color_of_money = db.Column(db.String(30))  # om, rdte, procurement, milcon, working_capital
     notes = db.Column(db.Text)
 
     source_contract = db.relationship('AcquisitionRequest', foreign_keys=[source_contract_id])
@@ -51,6 +54,9 @@ class DemandForecast(db.Model):
             'acquisition_request_id': self.acquisition_request_id,
             'assigned_to_id': self.assigned_to_id,
             'assigned_to_name': self.assigned_to.name if self.assigned_to else None,
+            'contract_number': self.contract_number,
+            'clin_number': self.clin_number,
+            'color_of_money': self.color_of_money,
             'created_date': self.created_date.isoformat() if self.created_date else None,
             'notes': self.notes,
         }

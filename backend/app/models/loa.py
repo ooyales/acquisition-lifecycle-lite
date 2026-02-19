@@ -13,6 +13,8 @@ class LineOfAccounting(db.Model):
     cost_center = db.Column(db.String(50))
     object_class = db.Column(db.String(20))
     program_element = db.Column(db.String(50))
+    project = db.Column(db.String(100))
+    task = db.Column(db.String(100))
     fiscal_year = db.Column(db.String(4))
     total_allocation = db.Column(db.Float, default=0)
     projected_amount = db.Column(db.Float, default=0)
@@ -53,5 +55,13 @@ class LineOfAccounting(db.Model):
             'available_balance': self.available_balance,
             'uncommitted_balance': self.uncommitted_balance,
             'fund_type': self.fund_type,
+            'project': self.project,
+            'task': self.task,
+            'budget_activity_code': self.budget_activity_code,
+            'cost_center': self.cost_center,
+            'object_class': self.object_class,
+            'program_element': self.program_element,
+            'expiration_date': self.expiration_date,
+            'notes': self.notes,
             'status': self.status,
         }

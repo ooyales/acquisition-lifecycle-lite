@@ -9,4 +9,6 @@ export const loaApi = {
     client.post('/loa', data).then(r => r.data),
   update: (id: number, data: Record<string, unknown>) =>
     client.put(`/loa/${id}`, data).then(r => r.data),
+  delete: (id: number) =>
+    client.delete(`/loa/${id}`).then(r => r.data),
 };

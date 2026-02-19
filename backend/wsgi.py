@@ -86,3 +86,18 @@ with app.app_context():
                         threshold_min=0,
                     ))
             db.session.commit()
+
+        # Migration: add project/task columns to LOA table
+        loa_cols = [c['name'] for c in inspector.get_columns('lines_of_accounting')]
+        if 'project' not in loa_cols:
+            db.session.execute(text("ALTER TABLE lines_of_accounting ADD COLUMN project VARCHAR(100)"))
+            db.session.execute(text("ALTER TABLE lines_of_accounting ADD COLUMN task VARCHAR(100)"))
+            db.session.commit()
+
+        # Migration: add contract_number/clin_number/color_of_money to forecasts
+        fc_cols = [c['name'] for c in inspector.get_columns('demand_forecasts')]
+        if 'contract_number' not in fc_cols:
+            db.session.execute(text("ALTER TABLE demand_forecasts ADD COLUMN contract_number VARCHAR(50)"))
+            db.session.execute(text("ALTER TABLE demand_forecasts ADD COLUMN clin_number VARCHAR(50)"))
+            db.session.execute(text("ALTER TABLE demand_forecasts ADD COLUMN color_of_money VARCHAR(30)"))
+            db.session.commit()
