@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from app.extensions import db
 from app.models.request import AcquisitionRequest
@@ -7,6 +7,7 @@ from app.models.advisory import AdvisoryInput
 from app.models.loa import LineOfAccounting
 from app.models.execution import CLINExecutionRequest
 from app.models.forecast import DemandForecast
+from app.models.clin import AcquisitionCLIN
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -225,3 +226,102 @@ def funding_dashboard():
             ),
         },
     })
+
+
+def _request_summary(r):
+    """Compact request dict for drill-down tables."""
+    return {
+        'id': r.id,
+        'request_number': r.request_number,
+        'title': r.title,
+        'estimated_value': r.estimated_value,
+        'status': r.status,
+        'acquisition_type': r.derived_acquisition_type,
+        'tier': r.derived_tier,
+        'requestor': r.requestor.name if r.requestor else None,
+    }
+
+
+@dashboard_bp.route('/drilldown/approvals', methods=['GET'])
+@jwt_required()
+def drilldown_approvals():
+    """Requests with active (optionally overdue) approval steps."""
+    overdue_only = request.args.get('overdue_only', 'false').lower() == 'true'
+    steps = ApprovalStep.query.filter_by(status='active').all()
+    if overdue_only:
+        steps = [s for s in steps if s.is_overdue]
+
+    seen = set()
+    items = []
+    for s in steps:
+        if s.request_id in seen:
+            continue
+        seen.add(s.request_id)
+        r = AcquisitionRequest.query.get(s.request_id)
+        if r:
+            item = _request_summary(r)
+            item['gate_name'] = s.step_name
+            item['approver_role'] = s.approver_role
+            item['is_overdue'] = s.is_overdue
+            items.append(item)
+    return jsonify(items)
+
+
+@dashboard_bp.route('/drilldown/advisories', methods=['GET'])
+@jwt_required()
+def drilldown_advisories():
+    """Requests with pending advisory inputs."""
+    advs = AdvisoryInput.query.filter(
+        AdvisoryInput.status.in_(['requested', 'in_review'])
+    ).all()
+
+    seen = set()
+    items = []
+    for a in advs:
+        if a.request_id in seen:
+            continue
+        seen.add(a.request_id)
+        r = AcquisitionRequest.query.get(a.request_id)
+        if r:
+            item = _request_summary(r)
+            item['team'] = a.team
+            item['advisory_status'] = a.status
+            items.append(item)
+    return jsonify(items)
+
+
+@dashboard_bp.route('/drilldown/executions', methods=['GET'])
+@jwt_required()
+def drilldown_executions():
+    """Active CLIN execution requests."""
+    execs = CLINExecutionRequest.query.filter(
+        CLINExecutionRequest.status.notin_(['complete', 'cancelled', 'rejected', 'draft'])
+    ).all()
+    return jsonify([{
+        'id': e.id,
+        'request_number': e.request_number,
+        'title': e.title,
+        'execution_type': e.execution_type,
+        'estimated_cost': e.estimated_cost,
+        'status': e.status,
+        'requested_by': e.requested_by.name if e.requested_by else None,
+    } for e in execs])
+
+
+@dashboard_bp.route('/drilldown/funding/<int:loa_id>', methods=['GET'])
+@jwt_required()
+def drilldown_funding(loa_id):
+    """Requests whose CLINs are linked to a specific LOA."""
+    clins = AcquisitionCLIN.query.filter_by(loa_id=loa_id).all()
+    seen = set()
+    items = []
+    for c in clins:
+        if c.request_id in seen:
+            continue
+        seen.add(c.request_id)
+        r = AcquisitionRequest.query.get(c.request_id)
+        if r:
+            item = _request_summary(r)
+            item['clin_number'] = c.clin_number
+            items.append(item)
+    return jsonify(items)

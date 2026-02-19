@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, ClipboardCheck, DollarSign, TrendingUp, AlertTriangle, Shield } from 'lucide-react';
+import { FileText, ClipboardCheck, DollarSign, TrendingUp, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard';
 import { requestsApi } from '../api/requests';
 import StatusBadge from '../components/common/StatusBadge';
-import { ACQUISITION_TYPE_LABELS, TIER_LABELS, PIPELINE_LABELS } from '../types';
+import Modal from '../components/common/Modal';
+import { RequestDrillDownTable, ExecutionDrillDownTable } from '../components/common/DrillDownTable';
+import { ACQUISITION_TYPE_LABELS, TIER_LABELS, STATUS_LABELS } from '../types';
 import type { AcquisitionRequest } from '../types';
 
 interface Metrics {
@@ -15,11 +17,20 @@ interface Metrics {
   forecasts: { open: number };
 }
 
+type ModalType = 'request' | 'execution';
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [recentRequests, setRecentRequests] = useState<AcquisitionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalData, setModalData] = useState<unknown[]>([]);
+  const [modalType, setModalType] = useState<ModalType>('request');
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -32,6 +43,51 @@ export default function DashboardPage() {
       setLoading(false);
     });
   }, []);
+
+  const openModal = useCallback(async (title: string, type: ModalType, fetcher: () => Promise<unknown>) => {
+    setModalTitle(title);
+    setModalType(type);
+    setModalData([]);
+    setModalLoading(true);
+    setModalOpen(true);
+    try {
+      const data = await fetcher();
+      const raw = Array.isArray(data) ? data : (data as Record<string, unknown>).requests;
+      setModalData(Array.isArray(raw) ? raw : []);
+    } catch {
+      setModalData([] as unknown[]);
+    } finally {
+      setModalLoading(false);
+    }
+  }, []);
+
+  const handleKpiClick = useCallback((label: string) => {
+    switch (label) {
+      case 'Total Requests':
+        openModal('All Requests', 'request', () => requestsApi.list({ per_page: '100' }));
+        break;
+      case 'Pending Approvals':
+        openModal(`Pending Approvals (${metrics?.approvals?.active ?? 0})`, 'request', () => dashboardApi.drilldownApprovals());
+        break;
+      case 'Total Value':
+        openModal('Requests by Value', 'request', () => requestsApi.list({ per_page: '100', sort: 'value_desc' }));
+        break;
+      case 'Active Executions':
+        openModal(`Active Executions (${metrics?.executions?.active ?? 0})`, 'execution', () => dashboardApi.drilldownExecutions());
+        break;
+      case 'Overdue':
+        openModal(`Overdue Approvals (${metrics?.approvals?.overdue ?? 0})`, 'request', () => dashboardApi.drilldownApprovals(true));
+        break;
+      case 'Pending Advisory':
+        openModal(`Pending Advisory Reviews (${metrics?.advisories?.pending ?? 0})`, 'request', () => dashboardApi.drilldownAdvisories());
+        break;
+    }
+  }, [openModal, metrics]);
+
+  const handleStatusClick = useCallback((status: string) => {
+    const label = STATUS_LABELS[status] || status.replace(/_/g, ' ');
+    openModal(`Requests: ${label}`, 'request', () => requestsApi.list({ status, per_page: '100' }));
+  }, [openModal]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-gray-500">Loading dashboard...</div>;
@@ -55,7 +111,11 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map(kpi => (
-          <div key={kpi.label} className="kpi-card">
+          <div
+            key={kpi.label}
+            className="kpi-card cursor-pointer hover:ring-2 hover:ring-eaw-primary/30 transition-shadow"
+            onClick={() => handleKpiClick(kpi.label)}
+          >
             <div className="flex items-center gap-2 mb-2">
               <kpi.icon size={16} className={kpi.color} />
               <span className="text-xs text-gray-500">{kpi.label}</span>
@@ -70,7 +130,11 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold mb-3">Status Distribution</h2>
           <div className="flex flex-wrap gap-3">
             {Object.entries(metrics.requests.by_status).map(([status, count]) => (
-              <div key={status} className="flex items-center gap-2">
+              <div
+                key={status}
+                className="flex items-center gap-2 cursor-pointer hover:opacity-75 transition-opacity"
+                onClick={() => handleStatusClick(status)}
+              >
                 <StatusBadge status={status} />
                 <span className="text-sm font-medium text-gray-700">{count as number}</span>
               </div>
@@ -120,7 +184,7 @@ export default function DashboardPage() {
                           {req.action_with}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-gray-400">&mdash;</span>
                       )}
                     </td>
                     <td className="text-sm">{req.requestor?.display_name || ''}</td>
@@ -131,6 +195,20 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Drill-down modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>
+        {modalLoading ? (
+          <div className="flex items-center justify-center py-12 gap-2 text-gray-500">
+            <Loader2 size={20} className="animate-spin" />
+            <span>Loading...</span>
+          </div>
+        ) : modalType === 'execution' ? (
+          <ExecutionDrillDownTable data={modalData as never[]} />
+        ) : (
+          <RequestDrillDownTable data={modalData as never[]} />
+        )}
+      </Modal>
     </div>
   );
 }

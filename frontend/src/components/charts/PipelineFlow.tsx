@@ -8,9 +8,10 @@ interface StageData {
 
 interface Props {
   data: StageData[];
+  onBarClick?: (stage: string) => void;
 }
 
-export default function PipelineFlow({ data }: Props) {
+export default function PipelineFlow({ data, onBarClick }: Props) {
   if (!data || data.length === 0) {
     return <p className="text-sm text-gray-500 text-center py-8">No pipeline data available.</p>;
   }
@@ -24,7 +25,14 @@ export default function PipelineFlow({ data }: Props) {
         <Tooltip formatter={(value: number, name: string) =>
           name === 'count' ? `${value} requests` : `${value} days`
         } />
-        <Bar dataKey="count" fill="#337ab7" name="Requests" radius={[0, 4, 4, 0]} />
+        <Bar
+          dataKey="count"
+          fill="#337ab7"
+          name="Requests"
+          radius={[0, 4, 4, 0]}
+          cursor={onBarClick ? 'pointer' : undefined}
+          onClick={onBarClick ? (_data: StageData) => onBarClick(_data.stage) : undefined}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
