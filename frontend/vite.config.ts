@@ -17,6 +17,19 @@ export default defineConfig({
         target: process.env.VITE_API_URL || 'http://localhost:5009',
         changeOrigin: true,
       },
+      '/apidocs': {
+        target: process.env.VITE_API_URL || 'http://localhost:5009',
+        changeOrigin: true,
+        rewrite: (path: string) => path === '/apidocs' ? '/apidocs/' : path,
+      },
+      '/flasgger_static': {
+        target: process.env.VITE_API_URL || 'http://localhost:5009',
+        changeOrigin: true,
+      },
+      '/apispec.json': {
+        target: process.env.VITE_API_URL || 'http://localhost:5009',
+        changeOrigin: true,
+      },
     },
   },
 });
